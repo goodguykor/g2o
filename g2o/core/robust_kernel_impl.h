@@ -195,6 +195,19 @@ namespace g2o {
     public:
       virtual void robustify(number_t e2, Vector3& rho) const;
   };
+
+
+  class G2O_CORE_API RobustKernelDHKIM : public RobustKernel
+  {
+    public:
+      virtual void robustify(number_t e2, Vector3& rho) const;
+      void set_depth(double depth) {
+        _depth = depth;
+      }
+
+    private:
+      double _depth;
+  };
 } // end namespace g2o
 
 #endif

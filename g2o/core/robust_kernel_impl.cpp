@@ -169,6 +169,25 @@ void RobustKernelDCS::robustify(number_t e2, Vector3& rho) const
   rho[2] = 0;
 }
 
+void RobustKernelDHKIM::robustify(number_t e2, Vector3& rho) const
+{
+  /*
+  number_t dsqr = _delta * _delta;
+  if (e2 <= dsqr) { // inlier
+    rho[0] = e2*_depth;
+    rho[1] = 1.;
+    rho[2] = 0.;
+  } else { // outlier
+    number_t sqrte = sqrt(e2); // absolut value of the error
+    rho[0] = (2*sqrte*_delta - dsqr)*_depth; // rho(e)   = 2 * delta * e^(1/2) - delta^2
+    rho[1] = _delta / sqrte;        // rho'(e)  = delta / sqrt(e)
+    rho[2] = - 0.5 * rho[1] / e2;    // rho''(e) = -1 / (2*e^(3/2)) = -1/2 * (delta/e) / e
+  }
+  */
+  rho[0] = e2*_depth;
+  rho[1] = 1.;
+  rho[2] = 0.;
+}
 // register the kernel to their factory
 G2O_REGISTER_ROBUST_KERNEL(Huber, RobustKernelHuber)
 G2O_REGISTER_ROBUST_KERNEL(PseudoHuber, RobustKernelPseudoHuber)
@@ -179,4 +198,5 @@ G2O_REGISTER_ROBUST_KERNEL(Fair, RobustKernelFair)
 G2O_REGISTER_ROBUST_KERNEL(Tukey, RobustKernelTukey)
 G2O_REGISTER_ROBUST_KERNEL(Saturated, RobustKernelSaturated)
 G2O_REGISTER_ROBUST_KERNEL(DCS, RobustKernelDCS)
+G2O_REGISTER_ROBUST_KERNEL(DCS, RobustKernelDHKIM)
 } // end namespace g2o
