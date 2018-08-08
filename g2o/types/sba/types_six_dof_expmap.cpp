@@ -41,6 +41,7 @@ G2O_REGISTER_TYPE(EDGE_PROJECT_XYZ2UV:EXPMAP, EdgeProjectXYZ2UV);
 G2O_REGISTER_TYPE(EDGE_PROJECT_XYZ2UVU:EXPMAP, EdgeProjectXYZ2UVU);
 G2O_REGISTER_TYPE(EDGE_SE3_PROJECT_XYZ:EXPMAP, EdgeSE3ProjectXYZ);
 G2O_REGISTER_TYPE(EDGE_SE3_PROJECT_XYZONLYPOSE:EXPMAP, EdgeSE3ProjectXYZOnlyPose);
+G2O_REGISTER_TYPE(EDGE_SE3_PROJECT_XYZONLYTRANSLATION:EXPMAP, EdgeSE3ProjectXYZOnlyTranslation);
 G2O_REGISTER_TYPE(EDGE_STEREO_SE3_PROJECT_XYZ:EXPMAP, EdgeStereoSE3ProjectXYZ);
 G2O_REGISTER_TYPE(EDGE_STEREO_SE3_PROJECT_XYZONLYPOSE:EXPMAP, EdgeStereoSE3ProjectXYZOnlyPose);
 G2O_REGISTER_TYPE(PARAMS_CAMERAPARAMETERS, CameraParameters);
@@ -575,6 +576,65 @@ Vector2 EdgeSE3ProjectXYZOnlyPose::cam_project(const Vector3 &trans_xyz) const {
   res[1] = proj[1] * fy + cy;
   return res;
 }
+
+bool EdgeSE3ProjectXYZOnlyTranslation::read(std::istream &is) {
+  for (int i = 0; i < 2; i++) {
+    is >> _measurement[i];
+  }
+  for (int i = 0; i < 2; i++)
+    for (int j = i; j < 2; j++) {
+      is >> information()(i, j);
+      if (i != j)
+        information()(j, i) = information()(i, j);
+    }
+  return true;
+}
+
+bool EdgeSE3ProjectXYZOnlyTranslation::write(std::ostream &os) const {
+
+  for (int i = 0; i < 2; i++) {
+    os << measurement()[i] << " ";
+  }
+
+  for (int i = 0; i < 2; i++)
+    for (int j = i; j < 2; j++) {
+      os << " " << information()(i, j);
+    }
+  return os.good();
+}
+
+void EdgeSE3ProjectXYZOnlyTranslation::linearizeOplus() {
+  VertexSE3Expmap *vi = static_cast<VertexSE3Expmap *>(_vertices[0]);
+  Vector3 xyz_trans = vi->estimate().map(Xw);
+
+  number_t x = xyz_trans[0];
+  number_t y = xyz_trans[1];
+  number_t invz = 1.0 / xyz_trans[2];
+  number_t invz_2 = invz * invz;
+
+  _jacobianOplusXi(0, 0) = 0;
+  _jacobianOplusXi(0, 1) = 0;
+  _jacobianOplusXi(0, 2) = 0;
+  _jacobianOplusXi(0, 3) = -invz * fx;
+  _jacobianOplusXi(0, 4) = 0;
+  _jacobianOplusXi(0, 5) = x * invz_2 * fx;
+
+  _jacobianOplusXi(1, 0) = 0;
+  _jacobianOplusXi(1, 1) = 0;
+  _jacobianOplusXi(1, 2) = 0;
+  _jacobianOplusXi(1, 3) = 0;
+  _jacobianOplusXi(1, 4) = -invz * fy;
+  _jacobianOplusXi(1, 5) = y * invz_2 * fy;
+}
+
+Vector2 EdgeSE3ProjectXYZOnlyTranslation::cam_project(const Vector3 &trans_xyz) const {
+  Vector2 proj = project2d(trans_xyz);
+  Vector2 res;
+  res[0] = proj[0] * fx + cx;
+  res[1] = proj[1] * fy + cy;
+  return res;
+}
+
 
 Vector3 EdgeStereoSE3ProjectXYZOnlyPose::cam_project(const Vector3 &trans_xyz) const {
   const float invz = 1.0f / trans_xyz[2];
