@@ -77,6 +77,8 @@ class G2O_TYPES_SBA_API CameraParameters : public g2o::Parameter
     number_t baseline;
 };
 
+
+
 /**
  * \brief SE3 Vertex parameterized internally with a transformation matrix
  and externally with its exponential map
@@ -257,6 +259,37 @@ class G2O_TYPES_SBA_API EdgeSE3ProjectXYZOnlyPose : public BaseUnaryEdge<2, Vect
   Vector3 Xw;
   number_t fx, fy, cx, cy;
 };
+
+// Edge to optimize only the camera translation
+class G2O_TYPES_SBA_API EdgeSE3ProjectXYZOnlyTranslation : public BaseUnaryEdge<2, Vector2, VertexSE3Expmap> {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  EdgeSE3ProjectXYZOnlyTranslation() {}
+
+  bool read(std::istream &is);
+
+  bool write(std::ostream &os) const;
+
+  void computeError() {
+    const VertexSE3Expmap *v1 = static_cast<const VertexSE3Expmap *>(_vertices[0]);
+    Vector2 obs(_measurement);
+    _error = obs - cam_project(v1->estimate().map(Xw));
+  }
+
+  bool isDepthPositive() {
+    const VertexSE3Expmap *v1 = static_cast<const VertexSE3Expmap *>(_vertices[0]);
+    return (v1->estimate().map(Xw))(2) > 0;
+  }
+
+  virtual void linearizeOplus();
+
+  Vector2 cam_project(const Vector3 &trans_xyz) const;
+
+  Vector3 Xw;
+  number_t fx, fy, cx, cy;
+};
+
 
 // Projection using focal_length in x and y directions stereo
 class G2O_TYPES_SBA_API EdgeStereoSE3ProjectXYZ : public BaseBinaryEdge<3, Vector3, VertexSBAPointXYZ, VertexSE3Expmap> {
